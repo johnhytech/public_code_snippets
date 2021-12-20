@@ -1,0 +1,40 @@
+https://stackoverflow.com/questions/38477352/how-to-annotate-a-difference-of-datetime-in-days
+
+If you are using MYSQL database, You could do it using Custom DB Function as,
+
+from django.db.models.functions import Func
+
+
+class TimeStampDiff(Func):
+    class PrettyStringFormatting(dict):
+        def __missing__(self, key):
+            return '%(' + key + ')s'
+
+    def __init__(self, *expressions, **extra):
+        unit = extra.pop('unit', 'day')
+        self.template = self.template % self.PrettyStringFormatting({"unit": unit})
+        super().__init__(*expressions, **extra)
+
+    function = 'TIMESTAMPDIFF'
+    template = "%(function)s(%(unit)s, %(expressions)s)"
+
+
+Usage
+
+from django.db.models import F, IntegerField
+
+booking_queryset = Booking.objects.annotate(
+    days=TimeStampDiff(F('start'), F('end'), output_field=IntegerField()))
+if booking_queryset.exist():
+    print(booking_queryset[0].__dict__)
+    
+    
+    
+https://stackoverflow.com/questions/59565478/is-it-possible-to-use-django-orm-to-select-no-table-fields-receiving-only-values
+
+from django.db.models import Max, Sum, ExpressionWrapper
+
+MyOperations.objects.values('operation_start_time').annotate(
+    diff=ExpressionWrapper(functions.Now() - F('operation_start_time'),
+    output_field=DurationField()
+)).values('diff')
